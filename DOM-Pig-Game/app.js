@@ -48,8 +48,16 @@ document.querySelector('.btn-hold').addEventListener('click', function() {
         scores[activePlayer] += roundScore;
         // Update the UI
         document.querySelector('#score-' + activePlayer).textContent = scores[activePlayer];
+        // Check final score input
+        var input = document.querySelector('.final-score').value;
+        if(input) {
+            var winningScore = input;
+        } else {
+            winningScore = 100;
+        }
+        
         // Check if player won the game
-        if (scores[activePlayer] >= 10) {
+        if (scores[activePlayer] >= winningScore) {
             document.querySelector('#name-' + activePlayer).textContent = 'WINNER!';
             document.querySelector('.dice').style.display = 'none';
             document.querySelector('.player-' + activePlayer + '-panel').classList.add('winner');
