@@ -5,13 +5,26 @@ var budgetController = (function() {
         this.id = id;
         this.description = description;
         this.value = value;
-    }
+        this.percentage = -1;
+    };
+
+    Expense.prototype.calcPercentage = function(totalIncome) {
+        if (totalIncome > 0) {
+            this.percentage = Math.round((this.value / totalIncome) * 100);
+        } else {
+            this.percentage = -1;
+        }
+    };
+
+    Expense.prototype.getPercentage = function() {
+        return this.percentage;
+    };
 
     var Income = function(id, description, value) {
         this.id = id;
         this.description = description;
         this.value = value;
-    }
+    };
 
     var calculateTotal = function(type){
         var sum = 0;
@@ -90,8 +103,20 @@ var budgetController = (function() {
             } else {
                 data.percentage = -1;
             }
-            
 
+        },
+
+        calculatePercentages: function(){
+            data.allItems.exp.forEach(function(cur) {
+                cur.calcPercentage(data.totals.inc);
+            });
+        },
+
+        getPercentages: function() {
+            var allPercentages = data.allItems.exp.map(function(cur) {
+                return cur.getPercentage();
+            });
+            return allPercentages;
         },
 
         getBudget: function() {
@@ -125,7 +150,8 @@ var UIController = (function() {
         incomeLabel: '.budget__income--value',
         expensesLabel: '.budget__expenses--value',
         percentageLabel: '.budget__expenses--percentage',
-        container: '.container'
+        container: '.container',
+        expensesPercLabel: '.item__percentage'
     };
 
     return {
@@ -180,6 +206,26 @@ var UIController = (function() {
                 document.querySelector(DOMstrings.percentageLabel).textContent = '---';
             }
         },
+
+        displayPercentages: function(percentages) {
+            var fields = document.querySelectorAll(DOMstrings.expensesPercLabel);
+
+            var nodeListForEach = function(nodelist, callback) {
+                for (var i = 0; i < nodelist.length; i++) {
+                    callback(nodelist[i], i);
+                }
+            };
+
+            nodeListForEach(fields, function(current, index) {
+                if (percentages[index] > 0) {
+                    current.textContent = percentages[index] + '%';
+                } else {
+                    current.textContent = '---';
+                }
+                
+            });
+        },
+
         getDOMstrings: function() {
             return DOMstrings;
         }
@@ -217,6 +263,15 @@ var controller = (function(budgetCtrl, UICtrl) {
         UIController.diplsayBudget(budget);
     };
 
+    var updatePercentages = function() {
+        // 1. Calculate updatePercentages
+        budgetController.calculatePercentages();
+        // 2. Read percentages from the budget controller
+        var percentages = budgetController.getPercentages();
+        // 3. Update the UI with the new percentages
+        UIController.displayPercentages(percentages);
+    };
+
     
     var ctrlAddItem = function() {
         var input, newItem;
@@ -235,6 +290,9 @@ var controller = (function(budgetCtrl, UICtrl) {
 
             // 5. Calculate and updateBudget
             updateBudget();
+
+            // 6. Calculate and update percentages
+            updatePercentages();
         }
     };
 
@@ -247,12 +305,14 @@ var controller = (function(budgetCtrl, UICtrl) {
             type = splitID[0];
             ID = parseInt(splitID[1]);
 
-            // Delete the item from the data structure
+            // 1. Delete the item from the data structure
             budgetController.deleteItem(type, ID);
-            // Delete the item from the UI
+            // 2. Delete the item from the UI
             UIController.deleteListItem(itemID);
-            // Update the budget
+            // 3. Update the budget
             updateBudget();
+            // 4. Calculate and update percentages
+            updatePercentages();
         }
     };
 
